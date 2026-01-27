@@ -16,6 +16,12 @@ Local search engine for Markdown notes, docs, and knowledge bases. Index once, s
 - "retrieve a markdown document from my collection"
 - "search local markdown files"
 
+## Default behavior (important)
+
+- Prefer `qmd search` (BM25). It's typically instant and should be the default.
+- Use `qmd vsearch` only when keyword search fails and you need semantic similarity (can be very slow on a cold start).
+- Avoid `qmd query` unless the user explicitly wants the highest quality hybrid results and can tolerate long runtimes/timeouts.
+
 ## Prerequisites
 
 - Bun >= 1.0.0
@@ -36,16 +42,29 @@ qmd context add qmd://notes "Description of this collection"  # optional
 qmd embed  # one-time to enable vector + hybrid search
 ```
 
+## What it indexes
+
+- Intended for Markdown collections (commonly `**/*.md`).
+- In our testing, "messy" Markdown is fine: chunking is content-based (roughly a few hundred tokens per chunk), not strict heading/structure based.
+- Not a replacement for code search; use code search tools for repositories/source trees.
+
 ## Search modes
 
-- `qmd search`: fast keyword match (BM25)
-- `qmd vsearch`: semantic similarity (vector)
-- `qmd query`: hybrid search + reranking (best quality, slower)
+- `qmd search` (default): fast keyword match (BM25)
+- `qmd vsearch` (last resort): semantic similarity (vector). Often slow due to local LLM work before the vector lookup.
+- `qmd query` (generally skip): hybrid search + LLM reranking. Often slower than `vsearch` and may timeout.
+
+## Performance notes
+
+- `qmd search` is typically instant.
+- `qmd vsearch` can be ~1 minute on some machines because query expansion may load a local model (e.g., Qwen3-1.7B) into memory per run; the vector lookup itself is usually fast.
+- `qmd query` adds LLM reranking on top of `vsearch`, so it can be even slower and less reliable for interactive use.
+- If you need repeated semantic searches, consider keeping the process/model warm (e.g., a long-lived qmd/MCP server mode if available in your setup) rather than invoking a cold-start LLM each time.
 
 ## Common commands
 
 ```bash
-qmd search "query"
+qmd search "query"             # default
 qmd vsearch "query"
 qmd query "query"
 qmd search "query" -c notes     # Search specific collection
@@ -83,3 +102,9 @@ qmd embed                       # Update embeddings
 
 - Uses local GGUF models; first run auto-downloads them.
 - Default cache: `~/.cache/qmd/models/` (override with `XDG_CACHE_HOME`).
+
+## Relationship to Clawdbot memory search
+
+- `qmd` searches *your local files* (notes/docs) that you explicitly index into collections.
+- Clawdbot's `memory_search` searches *agent memory* (saved facts/context from prior interactions).
+- Use both: `memory_search` for "what did we decide/learn before?", `qmd` for "what's in my notes/docs on disk?".
