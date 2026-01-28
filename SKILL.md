@@ -98,6 +98,25 @@ qmd update                      # Re-index changed files
 qmd embed                       # Update embeddings
 ```
 
+### Keeping the index fresh
+
+Set up a cron job or hook to automatically re-index. For example, a daily 5 AM reindex:
+
+```bash
+# Via Clawdbot cron (isolated job, runs silently):
+clawdbot cron add \
+  --name "qmd-reindex" \
+  --cron "0 5 * * *" \
+  --tz "America/New_York" \
+  --session isolated \
+  --message "Run: export PATH=\"\$HOME/.bun/bin:\$PATH\" && qmd update && qmd embed" 
+
+# Or via system crontab:
+0 5 * * * export PATH="$HOME/.bun/bin:$PATH" && qmd update && qmd embed
+```
+
+This ensures your vault search stays current as you add or edit notes.
+
 ## Models and cache
 
 - Uses local GGUF models; first run auto-downloads them.
