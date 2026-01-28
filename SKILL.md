@@ -98,24 +98,24 @@ qmd update                      # Re-index changed files
 qmd embed                       # Update embeddings
 ```
 
-### Keeping the index fresh
+## Keeping the index fresh
 
-Set up a cron job or hook to automatically re-index. For example, a daily 5 AM reindex:
+Automate indexing so results stay current as you add/edit notes.
+
+- For keyword search (`qmd search`), `qmd update` is usually enough (fast).
+- If you rely on semantic/hybrid search (`vsearch`/`query`), you may also want `qmd embed`, but it can be slow.
+
+Example schedules (cron):
 
 ```bash
-# Via Clawdbot cron (isolated job, runs silently):
-clawdbot cron add \
-  --name "qmd-reindex" \
-  --cron "0 5 * * *" \
-  --tz "America/New_York" \
-  --session isolated \
-  --message "Run: export PATH=\"\$HOME/.bun/bin:\$PATH\" && qmd update && qmd embed" 
+# Hourly incremental updates (keeps BM25 fresh):
+0 * * * * export PATH="$HOME/.bun/bin:$PATH" && qmd update
 
-# Or via system crontab:
-0 5 * * * export PATH="$HOME/.bun/bin:$PATH" && qmd update && qmd embed
+# Optional: nightly embedding refresh (can be slow):
+0 5 * * * export PATH="$HOME/.bun/bin:$PATH" && qmd embed
 ```
 
-This ensures your vault search stays current as you add or edit notes.
+If your Clawdbot/agent environment supports a built-in scheduler, you can run the same commands there instead of system cron.
 
 ## Models and cache
 
